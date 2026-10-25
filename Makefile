@@ -35,7 +35,9 @@ package:
 	cp manifest.yaml runtime-lock.json LICENSE $(STAGE)/
 	cp licenses/NONO-APACHE-2.0.txt $(STAGE)/licenses/
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o $(STAGE)/server/plugin-linux-amd64 ./server
-	python3 scripts/runtime_package.py prepare $(STAGE)/runtime/nono-linux-amd64
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -o $(STAGE)/server/plugin-darwin-arm64 ./server
+	python3 scripts/runtime_package.py prepare $(STAGE)/runtime/nono-linux-amd64 linux-amd64
+	python3 scripts/runtime_package.py prepare $(STAGE)/runtime/nono-darwin-arm64 darwin-arm64
 	cd $(KANDEV_SDK) && go run ./cmd/plugin-pack -dir $(CURDIR)/$(STAGE) -out $(CURDIR)/$(PKG_OUT)
 	rm -rf $(STAGE)
 

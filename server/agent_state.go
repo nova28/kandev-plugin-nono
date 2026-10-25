@@ -16,7 +16,7 @@ var childDirectories = []struct{ key, name string }{
 	{"sandbox.child.tmp", "TMPDIR"},
 }
 
-func compileChildDirectories(req *pluginsdk.CompileSandboxPolicyRequest) (map[string]string, []*pluginsdk.SandboxArtifactBinding, error) {
+func compileChildDirectories(req *pluginsdk.CompileSandboxPolicyRequest, darwin bool) (map[string]string, []*pluginsdk.SandboxArtifactBinding, error) {
 	if len(req.References) == 0 {
 		return nil, nil, nil
 	}
@@ -35,7 +35,7 @@ func compileChildDirectories(req *pluginsdk.CompileSandboxPolicyRequest) (map[st
 	bindings := make([]*pluginsdk.SandboxArtifactBinding, 0, len(childDirectories))
 	for _, dir := range childDirectories {
 		value := values[dir.key]
-		if value != home && !strings.HasPrefix(value, home+string(filepath.Separator)) {
+		if !(darwin && dir.key == "sandbox.child.tmp") && value != home && !strings.HasPrefix(value, home+string(filepath.Separator)) {
 			return nil, nil, status.Error(codes.InvalidArgument, "child directories must share the granted home")
 		}
 		environment[dir.name] = ""

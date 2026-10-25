@@ -38,21 +38,30 @@ class RuntimePackageTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 package.runtime_bytes(changed, lock)
 
+    def test_lock_pins_both_hosts_to_distinct_runtimes(self):
+        lock = json.loads((Path(__file__).resolve().parent.parent/'runtime-lock.json').read_text())
+        self.assertEqual(set(lock['runtimes']), set(package.PLATFORMS))
+        digests = {entry['binary_sha256'] for entry in lock['runtimes'].values()}
+        self.assertEqual(len(digests), 2)
+        self.assertIn('darwin-arm64', lock['runtimes']['darwin-arm64']['platform'])
+        self.assertIn('apple-darwin', lock['runtimes']['darwin-arm64']['url'])
+
     def test_package_inventory_and_checksums(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            lock = self.lock(self.archive())
-            files = {'manifest.yaml': b'id: fixture', 'server/plugin-linux-amd64': b'plugin', 'runtime/nono-linux-amd64': b'fixture', 'runtime-lock.json': json.dumps(lock).encode(), 'licenses/NONO-APACHE-2.0.txt': b'license', 'LICENSE': b'plugin license'}
+            lock = {'runtimes': {platform: self.lock(self.archive()) for platform in package.PLATFORMS}}
+            files = {'manifest.yaml': b'id: fixture', 'server/plugin-linux-amd64': b'plugin', 'server/plugin-darwin-arm64': b'plugin', 'runtime/nono-linux-amd64': b'fixture', 'runtime/nono-darwin-arm64': b'fixture', 'runtime-lock.json': json.dumps(lock).encode(), 'licenses/NONO-APACHE-2.0.txt': b'license', 'LICENSE': b'plugin license'}
             for name, data in files.items():
                 target = root/name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             (root/'checksums.txt').write_text(''.join(f'{hashlib.sha256(data).hexdigest()}  {name}\n' for name,data in files.items()))
             package.verify_package(root,lock)
-            (root/'runtime/nono-linux-amd64').write_bytes(b'changed')
-            with self.assertRaises(ValueError):
-                package.verify_package(root,lock)
-            (root/'runtime/nono-linux-amd64').write_bytes(b'fixture')
+            for platform in package.PLATFORMS:
+                (root/f'runtime/nono-{platform}').write_bytes(b'changed')
+                with self.assertRaises(ValueError):
+                    package.verify_package(root,lock)
+                (root/f'runtime/nono-{platform}').write_bytes(b'fixture')
             (root/'unexpected').write_text('extra')
             with self.assertRaises(ValueError):
                 package.verify_package(root,lock)
