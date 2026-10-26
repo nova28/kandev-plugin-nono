@@ -2,12 +2,13 @@ id: "kandev-plugin-nono"
 api_version: 2
 version: "0.1.0"
 display_name: "Nono"
-description: "Pinned Linux sandbox policy compiler and approval protocol for Kandev. Requires the experimental sandbox provider contract."
+description: "Pinned sandbox policy compiler for Kandev on Linux amd64 and macOS Apple Silicon. Approvals apply to Linux only. Requires the experimental sandbox provider contract."
 categories: ["tools"]
 runtime:
   type: binary
   executables:
     linux-amd64: "server/plugin-linux-amd64"
+    darwin-arm64: "server/plugin-darwin-arm64"
 capabilities:
   sandbox_provider: true
 sandbox_providers:

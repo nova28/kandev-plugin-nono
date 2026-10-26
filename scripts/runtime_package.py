@@ -9,8 +9,10 @@ import tarfile
 import urllib.request
 
 MAX_BYTES = 128 << 20
-FILES = {'manifest.yaml', 'server/plugin-linux-amd64', 'runtime/nono-linux-amd64',
-         'runtime-lock.json', 'licenses/NONO-APACHE-2.0.txt', 'LICENSE'}
+PLATFORMS = ('linux-amd64', 'darwin-arm64')
+FILES = {'manifest.yaml', 'runtime-lock.json', 'licenses/NONO-APACHE-2.0.txt', 'LICENSE'} | {
+    f'{kind}/{name}-{platform}' for platform in PLATFORMS
+    for kind, name in (('server', 'plugin'), ('runtime', 'nono'))}
 
 
 def runtime_bytes(archive, lock):
@@ -55,14 +57,15 @@ def verify_package(root, expected_lock):
             raise ValueError('package checksum mismatch')
     if json.loads((root/'runtime-lock.json').read_text()) != expected_lock:
         raise ValueError('package runtime lock mismatch')
-    with (root/'runtime/nono-linux-amd64').open('rb') as stream:
-        digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-    if digest != expected_lock['binary_sha256']:
-        raise ValueError('packaged runtime digest mismatch')
+    for platform in PLATFORMS:
+        with (root/f'runtime/nono-{platform}').open('rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        if digest != expected_lock['runtimes'][platform]['binary_sha256']:
+            raise ValueError('packaged runtime digest mismatch')
 
 
 def prepare_runtime(destination, lock):
-    archive_path = os.environ.get('NONO_RUNTIME_ARCHIVE')
+    archive_path = os.environ.get('NONO_RUNTIME_ARCHIVE_' + lock['platform'].upper().replace('-', '_'))
     if archive_path:
         with Path(archive_path).open('rb') as source:
             archive = source.read(MAX_BYTES + 1)
@@ -80,11 +83,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('operation', choices=['prepare', 'verify'])
     parser.add_argument('path', type=Path)
+    parser.add_argument('platform', nargs='?', choices=PLATFORMS)
     args = parser.parse_args()
     lock = json.loads((Path(__file__).resolve().parent.parent/'runtime-lock.json').read_text())
     try:
         if args.operation == 'prepare':
-            prepare_runtime(args.path, lock)
+            if args.platform is None:
+                parser.error('prepare needs a platform')
+            prepare_runtime(args.path, lock['runtimes'][args.platform])
         else:
             verify_package(args.path, lock)
     except (OSError, ValueError, KeyError) as error:

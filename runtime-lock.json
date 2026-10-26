@@ -1,9 +1,20 @@
 {
   "version": "0.80.0",
   "source_commit": "8bb041356d48f771a221e58c98d9b1ff442e76fe",
-  "url": "https://github.com/nolabs-ai/nono/releases/download/v0.80.0/nono-v0.80.0-x86_64-unknown-linux-musl.tar.gz",
-  "archive_sha256": "cae6755f1188b561ea02f62995feb8ad87d457f6d5255956ec54f41bbefca31e",
-  "binary_sha256": "a66396777ed756dff196ef61cf704abd4feebf58599d41e2da3363bbe90e22af",
-  "member": "nono",
-  "platform": "linux-amd64"
+  "runtimes": {
+    "linux-amd64": {
+      "url": "https://github.com/nolabs-ai/nono/releases/download/v0.80.0/nono-v0.80.0-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "cae6755f1188b561ea02f62995feb8ad87d457f6d5255956ec54f41bbefca31e",
+      "binary_sha256": "a66396777ed756dff196ef61cf704abd4feebf58599d41e2da3363bbe90e22af",
+      "member": "nono",
+      "platform": "linux-amd64"
+    },
+    "darwin-arm64": {
+      "url": "https://github.com/nolabs-ai/nono/releases/download/v0.80.0/nono-v0.80.0-aarch64-apple-darwin.tar.gz",
+      "archive_sha256": "ae824167b3d90531b830429ba92b7781379b1c2d79f9b11fdd88b0fd267e4e32",
+      "binary_sha256": "e95479a2ef64b19e3245a90a60024bb248e96e8ec234ffeb25e062ddd45b1417",
+      "member": "nono",
+      "platform": "darwin-arm64"
+    }
+  }
 }

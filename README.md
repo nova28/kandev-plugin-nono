@@ -32,7 +32,7 @@ The tests verify the executable SHA-256 before starting it. They use private tem
 
 ## Package
 
-`make verify-package` builds the Linux plugin, downloads the pinned Nono release, verifies the archive and executable digests, and produces `kandev-plugin-nono-0.1.0.tar.gz`. Set `NONO_RUNTIME_ARCHIVE` to an already downloaded pinned archive for an offline package build. The plugin does not download a runtime during launch.
+`make verify-package` builds the Linux amd64 and macOS arm64 plugin executables, downloads the pinned Nono release for each, verifies the archive and executable digests, and produces `kandev-plugin-nono-0.1.0.tar.gz`. Set `NONO_RUNTIME_ARCHIVE_LINUX_AMD64` and `NONO_RUNTIME_ARCHIVE_DARWIN_ARM64` to already downloaded pinned archives for an offline package build. The plugin does not download a runtime during launch.
 
 The package includes the Nono Apache 2.0 license and `runtime-lock.json` provenance. Plugin code uses the repository MIT license.
 

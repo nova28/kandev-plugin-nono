@@ -15,16 +15,23 @@ import (
 
 var excludedGroups = []string{"system_read_macos", "system_read_linux_core", "system_write_macos", "system_write_linux", "user_tools", "homebrew_macos", "homebrew_linux", "dangerous_commands", "dangerous_commands_macos", "dangerous_commands_linux"}
 
+var forbiddenArguments = []string{"--allow-net", "--sandbox-policy", "--profile", "--allow", "--read", "--write", "--detached", "--no-sandbox", "--no-supervisor", "--allow-domain", "--open-port", "--connect-port", "--allow-command", "--bypass-protection"}
+var forbiddenEnvironmentKeys = []string{"NONO_ALLOW_NET", "NONO_PROFILE", "NONO_SANDBOX_POLICY"}
+
 func (*nonoPlugin) CompileSandboxPolicy(ctx context.Context, req *pluginsdk.CompileSandboxPolicyRequest) (*pluginsdk.CompileSandboxPolicyResponse, error) {
 	reply, err := replyContext(ctx, req.GetContext())
 	if err != nil {
 		return nil, err
 	}
-	if !supportedHost(req.Runtime) || req.Runtime.RuntimeVersion != runtimeVersion || req.Runtime.RuntimeDigest != runtimeDigest {
+	selected, ok := hostFor(req.Runtime)
+	if !ok || !supportedHost(req.Runtime) || req.Runtime.RuntimeVersion != runtimeVersion || req.Runtime.RuntimeDigest != selected.digest {
 		return nil, status.Error(codes.FailedPrecondition, "unsupported sandbox runtime")
 	}
 	if req.Policy == nil || req.Policy.Grants == nil || len(req.Policy.Grants.Filesystem) > 256 || len(req.Policy.Grants.Network) > 256 {
 		return nil, status.Error(codes.InvalidArgument, "invalid sandbox policy")
+	}
+	if selected.os == "darwin" {
+		return compileDarwin(req, reply)
 	}
 	filesystem, err := compileFilesystem(req.Policy.Grants.Filesystem)
 	if err != nil {
@@ -38,7 +45,7 @@ func (*nonoPlugin) CompileSandboxPolicy(ctx context.Context, req *pluginsdk.Comp
 	if err != nil {
 		return nil, err
 	}
-	childVars, childBindings, err := compileChildDirectories(req)
+	childVars, childBindings, err := compileChildDirectories(req, false)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +75,7 @@ func (*nonoPlugin) CompileSandboxPolicy(ctx context.Context, req *pluginsdk.Comp
 		},
 		Artifacts:            []*pluginsdk.SandboxArtifact{{Name: "profile.json", Kind: pluginsdk.SandboxArtifactProfile, ContentUtf8: string(content), Bindings: []*pluginsdk.SandboxArtifactBinding{{Path: []string{"security", "approval_backends", "kandev", "url"}, RuntimeReference: approvalEndpoint}}}},
 		EffectiveGrants:      proto.Clone(req.Policy.Grants).(*pluginsdk.SandboxGrants),
-		Constraints:          &pluginsdk.SandboxOverrideConstraints{ForbiddenArguments: []string{"--allow-net", "--sandbox-policy", "--profile", "--allow", "--read", "--write", "--detached", "--no-sandbox", "--no-supervisor", "--allow-domain", "--open-port", "--connect-port", "--allow-command", "--bypass-protection"}, ForbiddenEnvironmentKeys: []string{"NONO_ALLOW_NET", "NONO_PROFILE", "NONO_SANDBOX_POLICY"}},
+		Constraints:          &pluginsdk.SandboxOverrideConstraints{ForbiddenArguments: forbiddenArguments, ForbiddenEnvironmentKeys: forbiddenEnvironmentKeys},
 		RequiredCapabilities: []string{"private_artifacts", "foreground_process", "approval_webhook", "isolated_environment"},
 	}}
 	result.Compiled.Artifacts[0].Bindings = append(result.Compiled.Artifacts[0].Bindings, childBindings...)
